@@ -1,0 +1,61 @@
+---
+  - name: Provision an EC2 Instance
+    hosts: localhost
+    connection: local
+    gather_facts: False
+    tags: provisioning
+    # Necessary Variables for creating/provisioning the EC2 Instance
+    vars:
+      instance_type: t2.micro
+    #  security_group: ansible-webserver # Change the security group name here
+      security_group: default
+    #  image: ami-719fb712 # This is an AMI i created myself
+    #  image: default
+      image: ami-007d5db58754fa284 # This is an AMI i created myself
+      keypair: ansible-installation # This is one of my keys that i already have in AWS
+      region: ap-south-1 # Change the Region
+      count: 1
+    #  aws_access_key: AKIAIDKJVUW5CHYHDXNQ
+    #  aws_secret_key: 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
+
+    # Task that will be used to Launch/Create an EC2 Instance
+    tasks:
+
+      - name: Create a security group
+        local_action: 
+          module: ec2_group
+          name: "{{ security_group }}"
+          description: Security Group for webserver Servers
+          region: "{{ region }}"
+          aws_access_key: "AKIAIDKJVUW5CHYHDXNQ"
+          aws_secret_key: "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"
+          rules:
+            - proto: tcp
+              from_port: 22
+              to_port: 22
+              cidr_ip: 0.0.0.0/0
+            - proto: tcp
+              from_port: 80
+              to_port: 80
+              cidr_ip: 0.0.0.0/0
+            - proto: tcp
+              from_port: 443
+              to_port: 443
+              cidr_ip: 0.0.0.0/0
+          rules_egress:
+            - proto: all
+              cidr_ip: 0.0.0.0/0
+        register: basic_firewall
+
+      - name: Launch the new EC2 Instance
+        local_action: ec2 
+                      group={{ security_group }} 
+                      instance_type={{ instance_type}} 
+                      image={{ image }} 
+                      wait=true 
+                      region={{ region }} 
+                      count={{ count }}
+                      keypair={{ keypair }}
+                      aws_access_key="AKIAIDKJVUW5CHYHDXNQ"
+                      aws_secret_key="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"
+        register: ec2
